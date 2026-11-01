@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NovaBank | Core Conectado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- HEADER -->
+  <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-400 flex items-center justify-center font-bold text-xl shadow-lg shadow-indigo-500/20">
+          N
+        </div>
+        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+          NovaBank <span class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">API Conectada</span>
+        </span>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <button id="btn-toggle-eye" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="eye" id="eye-icon" class="w-5 h-5"></i>
+        </button>
+        <div class="flex items-center gap-3 pl-4 border-l border-slate-800">
+          <div class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-semibold text-sm text-indigo-400" id="user-initials">
+            --
+          </div>
+          <div class="hidden sm:block text-left leading-tight">
+            <p class="text-sm font-medium text-slate-200" id="user-name">Cargando...</p>
+            <p class="text-xs text-slate-400" id="user-email">...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Balance Card -->
+      <div class="lg:col-span-2 bg-gradient-to-br from-slate-900/90 to-slate-900/40 border border-slate-800/80 p-6 sm:p-8 rounded-3xl relative overflow-hidden backdrop-blur-xl">
+        <div class="flex items-center justify-between text-slate-400 mb-2">
+          <span class="text-sm font-medium tracking-wide uppercase">Saldo en Cuenta (Backend)</span>
+          <span id="account-badge" class="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sincronizado
+          </span>
+        </div>
+
+        <div class="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-6" id="balance-display">
+          $0.00
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 pt-4 border-t border-slate-800/80">
+          <button onclick="openModal('modal-transfer')" class="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition shadow-lg shadow-indigo-600/20 active:scale-95">
+            <i data-lucide="send" class="w-5 h-5 mb-1.5"></i>
+            <span class="text-xs sm:text-sm">Transferir</span>
+          </button>
+          
+          <button onclick="openModal('modal-deposit')" class="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-medium transition border border-slate-700/60 active:scale-95">
+            <i data-lucide="plus-circle" class="w-5 h-5 mb-1.5 text-emerald-400"></i>
+            <span class="text-xs sm:text-sm">Ingresar</span>
+          </button>
+
+          <button onclick="toggleCardLock()" id="btn-lock" class="flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl bg-slate-800/80 hover:bg-slate-700/80 text-white font-medium transition border border-slate-700/60 active:scale-95">
+            <i data-lucide="lock" class="w-5 h-5 mb-1.5 text-amber-400" id="lock-icon"></i>
+            <span class="text-xs sm:text-sm" id="lock-text">Bloquear</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta Virtual Dinámica -->
+      <div id="virtual-card" class="bg-gradient-to-tr from-indigo-900 via-indigo-700 to-violet-600 p-6 rounded-3xl flex flex-col justify-between shadow-2xl relative overflow-hidden transition-all duration-300">
+        <div class="flex justify-between items-start z-10">
+          <div>
+            <p class="text-xs text-indigo-200 font-medium tracking-wider uppercase">Nova Platinum</p>
+            <p class="text-lg font-bold text-white tracking-wide">Débito</p>
+          </div>
+          <i data-lucide="nfc" class="w-6 h-6 text-indigo-200"></i>
+        </div>
+
+        <div class="my-6 z-10">
+          <p class="text-xs text-indigo-200 mb-1">Número de Tarjeta</p>
+          <p class="text-xl sm:text-2xl font-mono tracking-widest text-white font-semibold" id="card-number">
+            •••• •••• •••• ••••
+          </p>
+        </div>
+
+        <div class="flex justify-between items-end z-10">
+          <div>
+            <p class="text-[10px] text-indigo-200 uppercase">Titular</p>
+            <p class="text-sm font-semibold text-white tracking-wide uppercase" id="card-holder">---</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-indigo-200 uppercase">Expira</p>
+            <p class="text-sm font-semibold text-white" id="card-exp">--/--</p>
+          </div>
+          <div>
+            <p class="text-[10px] text-indigo-200 uppercase">CVV</p>
+            <p class="text-sm font-mono font-semibold text-white" id="card-cvv">•••</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Transacciones -->
+    <section class="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-lg font-bold text-white">Libro Contable (Transacciones)</h2>
+          <p class="text-xs text-slate-400">Datos consultados directamente de la base de datos SQL</p>
+        </div>
+        <button onclick="fetchAccountData()" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="divide-y divide-slate-800/60" id="tx-container">
+        <!-- Renderizado dinámico -->
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL TRANSFERENCIA -->
+  <div id="modal-transfer" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl relative">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-bold text-white">Transferencia Inmediata</h3>
+        <button onclick="closeModal('modal-transfer')" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="submitTransfer(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Destinatario registrado</label>
+          <input type="email" id="tx-recipient" required placeholder="ej. maria@gmail.com" value="maria@gmail.com" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <p class="text-[11px] text-slate-500 mt-1">Cuenta de prueba disponible: maria@gmail.com</p>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Concepto</label>
+          <input type="text" id="tx-concept" required placeholder="ej. Pago de Servicios" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Monto ($)</label>
+          <input type="number" id="tx-amount" min="0.01" step="0.01" required placeholder="0.00" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <button type="submit" id="btn-submit-transfer" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition shadow-lg shadow-indigo-600/30">
+          Ejecutar Transacción
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DEPÓSITO -->
+  <div id="modal-deposit" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl relative">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-bold text-white">Ingresar Fondos</h3>
+        <button onclick="closeModal('modal-deposit')" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="submitDeposit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Monto a Abonar</label>
+          <input type="number" id="dp-amount" min="1" step="0.01" required placeholder="100.00" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl transition shadow-lg shadow-emerald-600/30">
+          Confirmar Depósito
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl bg-slate-800 border border-slate-700 shadow-2xl transition-all duration-300 transform translate-y-24 opacity-0 pointer-events-none">
+    <i data-lucide="check-circle" id="toast-icon" class="w-5 h-5 text-emerald-400"></i>
+    <span class="text-sm font-medium text-white" id="toast-msg">Mensaje</span>
+  </div>
+
+  <script>
+    let globalData = null;
+    let hideBalance = false;
+
+    const formatter = new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2
+    });
+
+    // 1. Cargar datos del Servidor
+    async function fetchAccountData() {
+      try {
+        const res = await fetch('/api/account');
+        if (!res.ok) throw new Error('Error al conectar con el servidor');
+        globalData = await res.json();
+        renderUI();
+      } catch (err) {
+        showToast(err.message, false);
+      }
+    }
+
+    // 2. Renderizado de la Interfaz
+    function renderUI() {
+      if (!globalData) return;
+
+      const { account, transactions } = globalData;
+
+      // Header y Perfil
+      document.getElementById('user-name').textContent = account.name;
+      document.getElementById('user-email').textContent = account.email;
+      document.getElementById('user-initials').textContent = account.name.split(' ').map(n => n[0]).join('');
+
+      // Saldo
+      const balanceEl = document.getElementById('balance-display');
+      balanceEl.textContent = hideBalance ? '••••••••' : formatter.format(account.balance);
+
+      // Tarjeta Virtual y Estado
+      const cardEl = document.getElementById('virtual-card');
+      const lockText = document.getElementById('lock-text');
+      const lockIcon = document.getElementById('lock-icon');
+      const cardCvv = document.getElementById('card-cvv');
+      
+      document.getElementById('card-number').textContent = account.card_number;
+      document.getElementById('card-holder').textContent = account.name;
+      document.getElementById('card-exp').textContent = account.exp_date;
+
+      if (account.is_locked) {
+        cardEl.className = 'bg-gradient-to-tr from-slate-800 to-slate-900 opacity-60 grayscale p-6 rounded-3xl flex flex-col justify-between shadow-lg transition-all duration-300';
+        lockText.textContent = 'Desbloquear';
+        lockIcon.setAttribute('data-lucide', 'unlock');
+        cardCvv.textContent = '•••';
+      } else {
+        cardEl.className = 'bg-gradient-to-tr from-indigo-900 via-indigo-700 to-violet-600 p-6 rounded-3xl flex flex-col justify-between shadow-2xl transition-all duration-300';
+        lockText.textContent = 'Bloquear';
+        lockIcon.setAttribute('data-lucide', 'lock');
+        cardCvv.textContent = account.cvv;
+      }
+
+      // Transacciones
+      const container = document.getElementById('tx-container');
+      if (transactions.length === 0) {
+        container.innerHTML = `<p class="py-6 text-center text-sm text-slate-500">Sin movimientos registrados.</p>`;
+      } else {
+        container.innerHTML = transactions.map(tx => `
+          <div class="py-4 flex items-center justify-between hover:bg-slate-800/30 px-3 rounded-2xl transition">
+            <div class="flex items-center gap-3.5">
+              <div class="w-10 h-10 rounded-xl flex items-center justify-center ${tx.type === 'credit' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                <i data-lucide="${tx.type === 'credit' ? 'arrow-down-left' : 'arrow-up-right'}" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-white leading-tight">${tx.title}</p>
+                <p class="text-xs text-slate-400">${tx.description} • ${new Date(tx.created_at).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-bold ${tx.type === 'credit' ? 'text-emerald-400' : 'text-slate-200'}">
+                ${tx.type === 'credit' ? '+' : '-'} ${hideBalance ? '••••' : formatter.format(tx.amount)}
+              </p>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      lucide.createIcons();
+    }
+
+    // 3. Enviar Transferencia al Servidor
+    async function submitTransfer(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-submit-transfer');
+      btn.disabled = true;
+      btn.textContent = 'Procesando en Ledger...';
+
+      const payload = {
+        recipientEmail: document.getElementById('tx-recipient').value,
+        concept: document.getElementById('tx-concept').value,
+        amount: document.getElementById('tx-amount').value
+      };
+
+      try {
+        const res = await fetch('/api/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        showToast(data.message, true);
+        closeModal('modal-transfer');
+        e.target.reset();
+        await fetchAccountData();
+      } catch (err) {
+        showToast(err.message, false);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Ejecutar Transacción';
+      }
+    }
+
+    // 4. Depositar
+    async function submitDeposit(e) {
+      e.preventDefault();
+      const amount = document.getElementById('dp-amount').value;
+
+      try {
+        const res = await fetch('/api/deposit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        showToast(data.message, true);
+        closeModal('modal-deposit');
+        e.target.reset();
+        await fetchAccountData();
+      } catch (err) {
+        showToast(err.message, false);
+      }
+    }
+
+    // 5. Bloquear / Desbloquear Tarjeta
+    async function toggleCardLock() {
+      try {
+        const res = await fetch('/api/toggle-lock', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        showToast(data.is_locked ? 'Tarjeta Bloqueada' : 'Tarjeta Desbloqueada', true);
+        await fetchAccountData();
+      } catch (err) {
+        showToast(err.message, false);
+      }
+    }
+
+    // Utilidades UI
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function showToast(msg, isSuccess = true) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-msg');
+      const toastIcon = document.getElementById('toast-icon');
+
+      toastMsg.textContent = msg;
+      toastIcon.className = isSuccess ? 'w-5 h-5 text-emerald-400' : 'w-5 h-5 text-rose-400';
+      toastIcon.setAttribute('data-lucide', isSuccess ? 'check-circle' : 'alert-triangle');
+      lucide.createIcons();
+
+      toast.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+      }, 3500);
+    }
+
+    document.getElementById('btn-toggle-eye').addEventListener('click', () => {
+      hideBalance = !hideBalance;
+      document.getElementById('eye-icon').setAttribute('data-lucide', hideBalance ? 'eye-off' : 'eye');
+      renderUI();
+    });
+
+    // Iniciar
+    fetchAccountData();
+  </script>
+</body>
+</html>
